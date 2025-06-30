@@ -1,35 +1,25 @@
 "use client"
 
-import { Edit, Trash2, Plus, Search } from "lucide-react"
+import { Edit, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { Subscription, SubscriptionFilters } from "@/types/subscription"
+import { Card, CardContent } from "@/components/ui/card"
+import type { Subscription } from "@/types/subscription"
 import { formatSubscriptionCurrency, convertCurrency } from "@/lib/subscription-utils"
 
 interface SubscriptionTableProps {
   subscriptions: Subscription[]
-  onAddSubscription: (s: any) => void
   onEditSubscription: (subscription: Subscription) => void
   onDeleteSubscription: (id: string) => void
-  filters: SubscriptionFilters
-  onFilterChange: (key: keyof SubscriptionFilters, value: string | undefined) => void
   displayCurrency: "KRW" | "USD"
-  onDisplayCurrencyChange: (currency: "KRW" | "USD") => void
 }
 
 export function SubscriptionTable({
   subscriptions,
-  onAddSubscription,
   onEditSubscription,
   onDeleteSubscription,
-  filters,
-  onFilterChange,
   displayCurrency,
-  onDisplayCurrencyChange,
 }: SubscriptionTableProps) {
   const getIntervalBadgeVariant = (interval: string) => {
     switch (interval) {
@@ -71,81 +61,6 @@ export function SubscriptionTable({
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>구독 관리</CardTitle>
-          <Button onClick={onAddSubscription}>
-            <Plus className="h-4 w-4 mr-2" />
-            구독 추가
-          </Button>
-        </div>
-
-        {/* Filters and Currency Toggle */}
-        <div className="flex gap-4 flex-wrap items-center">
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4" />
-            <Input
-              placeholder="구독 검색..."
-              value={filters.search || ""}
-              onChange={(e) => onFilterChange("search", e.target.value)}
-              className="w-64"
-            />
-          </div>
-
-          <Select
-            value={filters.currency ?? "all"}
-            onValueChange={(value) =>
-              onFilterChange("currency", value)
-            }
-          >
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="통화" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">모두</SelectItem>
-              <SelectItem value="KRW">KRW</SelectItem>
-              <SelectItem value="USD">USD</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={filters.interval ?? "all"}
-            onValueChange={(value) =>
-              onFilterChange("interval", value)
-            }
-          >
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="간격" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">모든 간격</SelectItem>
-              <SelectItem value="monthly">매월</SelectItem>
-              <SelectItem value="quarterly">분기별</SelectItem>
-              <SelectItem value="yearly">매년</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Currency Display Toggle */}
-          <div className="flex items-center gap-2 border rounded-lg px-3 py-2">
-            <span className="text-sm">표시 통화:</span>
-            <Button
-              variant={displayCurrency === "KRW" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => onDisplayCurrencyChange("KRW")}
-            >
-              KRW
-            </Button>
-            <Button
-              variant={displayCurrency === "USD" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => onDisplayCurrencyChange("USD")}
-            >
-              USD
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-
       <CardContent>
         <Table>
           <TableHeader>
