@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "prisma generate",
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed"
   },
   "dependencies": {
     "@eslint/eslintrc": "latest",
@@ -70,7 +73,8 @@
     "url": "latest",
     "util": "latest",
     "vaul": "latest",
-    "zod": "latest"
+    "zod": "latest",
+    "reactflow": "^11.11.4"
   },
   "devDependencies": {
     "@types/node": "^22",

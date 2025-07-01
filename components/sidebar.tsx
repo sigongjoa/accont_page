@@ -10,16 +10,6 @@ export function Sidebar() {
 
   const navItems = [
     {
-      name: "대시보드",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      name: "지출",
-      href: "/expenses",
-      icon: Wallet,
-    },
-    {
       name: "구독",
       href: "/subscriptions",
       icon: Repeat,
@@ -28,6 +18,21 @@ export function Sidebar() {
       name: "사이트",
       href: "/sites",
       icon: Globe,
+    },
+    {
+      name: "Services",
+      href: "/services",
+      icon: Repeat, // Replace with a more appropriate icon if available
+    },
+    {
+      name: "AI Models",
+      href: "/models",
+      icon: Repeat, // Replace with a more appropriate icon if available
+    },
+    {
+      name: "GitHub Repos",
+      href: "/repositories",
+      icon: Repeat, // Replace with a more appropriate icon if available
     },
   ]
 
