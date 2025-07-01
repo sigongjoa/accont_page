@@ -1,76 +1,61 @@
 import { type NextRequest, NextResponse } from "next/server"
-import type { Subscription } from "@/types/subscription"
-import { calculateNextBillingDate } from "@/lib/subscription-utils"
-
-// Mock data - same as above
-const subscriptions: Subscription[] = [
-  {
-    id: "1",
-    serviceName: "AWS Cloud Services",
-    amount: 150000,
-    currency: "KRW",
-    billingInterval: "monthly",
-    startDate: "2024-01-01",
-    nextBillingDate: "2025-02-01",
-    isActive: true,
-    createdAt: "2024-01-01T00:00:00Z",
-    updatedAt: "2024-01-01T00:00:00Z",
-  },
-  {
-    id: "2",
-    serviceName: "Adobe Creative Suite",
-    amount: 52.99,
-    currency: "USD",
-    billingInterval: "monthly",
-    startDate: "2024-06-15",
-    nextBillingDate: "2025-02-15",
-    isActive: true,
-    createdAt: "2024-06-15T00:00:00Z",
-    updatedAt: "2024-06-15T00:00:00Z",
-  },
-  {
-    id: "3",
-    serviceName: "Office 365",
-    amount: 120,
-    currency: "USD",
-    billingInterval: "yearly",
-    startDate: "2024-03-01",
-    nextBillingDate: "2025-03-01",
-    isActive: true,
-    createdAt: "2024-03-01T00:00:00Z",
-    updatedAt: "2024-03-01T00:00:00Z",
-  },
-]
+import { supabase } from "@/lib/supabase"
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params
-  const body = await request.json()
+  try {
+    const body = await request.json()
 
-  const subscriptionIndex = subscriptions.findIndex((sub) => sub.id === id)
-  if (subscriptionIndex === -1) {
-    return NextResponse.json({ error: "Subscription not found" }, { status: 404 })
+    const { data, error } = await supabase
+      .from("subscriptions")
+      .update({
+        service_name: body.serviceName,
+        amount: body.amount,
+        currency: body.currency || "KRW",
+        billing_interval: body.billingInterval,
+        start_date: body.startDate,
+        category: body.category,
+        is_active: body.isActive !== undefined ? body.isActive : true,
+      })
+      .eq("id", params.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error updating subscription:", error)
+      return NextResponse.json({ error: "Failed to update subscription" }, { status: 500 })
+    }
+
+    // Transform data to match frontend expectations
+    const transformedData = {
+      id: data.id,
+      serviceName: data.service_name,
+      amount: data.amount,
+      currency: data.currency,
+      billingInterval: data.billing_interval,
+      startDate: data.start_date,
+      category: data.category,
+      isActive: data.is_active,
+    }
+
+    return NextResponse.json(transformedData)
+  } catch (error) {
+    console.error("Error in subscription PUT:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-
-  const nextBillingDate = calculateNextBillingDate(body.startDate, body.billingInterval)
-
-  subscriptions[subscriptionIndex] = {
-    ...subscriptions[subscriptionIndex],
-    ...body,
-    nextBillingDate,
-    updatedAt: new Date().toISOString(),
-  }
-
-  return NextResponse.json(subscriptions[subscriptionIndex])
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params
+  try {
+    const { error } = await supabase.from("subscriptions").delete().eq("id", params.id)
 
-  const subscriptionIndex = subscriptions.findIndex((sub) => sub.id === id)
-  if (subscriptionIndex === -1) {
-    return NextResponse.json({ error: "Subscription not found" }, { status: 404 })
+    if (error) {
+      console.error("Error deleting subscription:", error)
+      return NextResponse.json({ error: "Failed to delete subscription" }, { status: 500 })
+    }
+
+    return NextResponse.json({ message: "Subscription deleted successfully" })
+  } catch (error) {
+    console.error("Error in subscription DELETE:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-
-  subscriptions.splice(subscriptionIndex, 1)
-  return NextResponse.json({ message: "Subscription deleted successfully" })
 }

@@ -1,64 +1,79 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { Expense, ExpenseCategory, ExpenseStatus, PaymentMethod } from "@/types/expense"
+import logger from "@/lib/logger"
+
+const formSchema = z.object({
+  date: z.string().min(1, { message: "날짜를 선택해주세요." }),
+  item: z.string().min(2, { message: "항목 설명은 2자 이상이어야 합니다." }).max(100, { message: "항목 설명은 100자 이내여야 합니다." }),
+  category: z.enum(["고정비", "변동비", "프로젝트", "기타"], { message: "카테고리를 선택해주세요." }),
+  amount: z.string().min(1, { message: "금액을 입력해주세요." }).refine((val) => !isNaN(Number.parseFloat(val)) && Number.parseFloat(val) > 0, { message: "유효한 금액을 입력해주세요." }),
+  paymentMethod: z.enum(["계좌이체", "카드", "현금", "기타"], { message: "결제방법을 선택해주세요." }),
+  status: z.enum(["대기중", "지불완료", "취소됨"], { message: "상태를 선택해주세요." }),
+  currency: z.enum(["KRW", "USD"]).default("KRW"),
+})
 
 interface ExpenseFormModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (expense: Partial<Expense>) => void
+  onSubmit: (expense: Partial<Expense>) => Promise<void>
   expense?: Expense | null
 }
 
 export function ExpenseFormModal({ isOpen, onClose, onSubmit, expense }: ExpenseFormModalProps) {
-  const [formData, setFormData] = useState({
-    date: "",
-    item: "",
-    category: "" as ExpenseCategory,
-    amount: "",
-    paymentMethod: "" as PaymentMethod,
-    status: "" as ExpenseStatus,
-    currency: "KRW",
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      date: new Date().toISOString().split("T")[0],
+      item: "",
+      category: "기타",
+      amount: "",
+      paymentMethod: "카드",
+      status: "대기중",
+      currency: "KRW",
+    },
   })
 
   useEffect(() => {
+    logger.debug("ExpenseFormModal useEffect: isOpen changed", { isOpen })
     if (expense) {
-      setFormData({
+      form.reset({
         date: expense.date,
         item: expense.item,
-        category: expense.category,
+        category: expense.category as ExpenseCategory,
         amount: expense.amount.toString(),
-        paymentMethod: expense.paymentMethod,
-        status: expense.status,
-        currency: expense.currency,
+        paymentMethod: expense.paymentMethod as PaymentMethod,
+        status: expense.status as ExpenseStatus,
+        currency: expense.currency as "KRW" | "USD",
       })
     } else {
-      setFormData({
+      form.reset({
         date: new Date().toISOString().split("T")[0],
         item: "",
-        category: "" as ExpenseCategory,
+        category: "기타",
         amount: "",
-        paymentMethod: "" as PaymentMethod,
+        paymentMethod: "카드",
         status: "대기중",
         currency: "KRW",
       })
     }
-  }, [expense, isOpen])
+  }, [expense, form])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit({
-      ...formData,
-      amount: Number.parseFloat(formData.amount),
-    })
+  function handleSubmit(values: z.infer<typeof formSchema>) {
+    onSubmit({ ...expense, ...values, amount: Number.parseFloat(values.amount) })
     onClose()
+    form.reset()
   }
 
   return (
@@ -66,103 +81,152 @@ export function ExpenseFormModal({ isOpen, onClose, onSubmit, expense }: Expense
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{expense ? "지출 수정" : "새 지출 추가"}</DialogTitle>
+          <DialogDescription>
+            {expense ? "지출 정보를 수정하세요." : "새로운 지출 정보를 입력하세요."}
+          </DialogDescription>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="date">날짜</Label>
-            <Input
-              id="date"
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              required
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>날짜</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-
-          <div>
-            <Label htmlFor="item">항목 설명</Label>
-            <Input
-              id="item"
-              value={formData.item}
-              onChange={(e) => setFormData({ ...formData, item: e.target.value })}
-              placeholder="지출 내용을 입력하세요"
-              required
+            <FormField
+              control={form.control}
+              name="item"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>항목 설명</FormLabel>
+                  <FormControl>
+                    <Input placeholder="지출 내용을 입력하세요" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-
-          <div>
-            <Label htmlFor="category">카테고리</Label>
-            <Select
-              value={formData.category}
-              onValueChange={(value: ExpenseCategory) => setFormData({ ...formData, category: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="카테고리 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="고정비">고정비</SelectItem>
-                <SelectItem value="변동비">변동비</SelectItem>
-                <SelectItem value="프로젝트">프로젝트</SelectItem>
-                <SelectItem value="기타">기타</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="amount">금액</Label>
-            <Input
-              id="amount"
-              type="number"
-              value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              placeholder="0"
-              required
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>카테고리</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="카테고리 선택" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="고정비">고정비</SelectItem>
+                      <SelectItem value="변동비">변동비</SelectItem>
+                      <SelectItem value="프로젝트">프로젝트</SelectItem>
+                      <SelectItem value="기타">기타</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-
-          <div>
-            <Label htmlFor="paymentMethod">결제방법</Label>
-            <Select
-              value={formData.paymentMethod}
-              onValueChange={(value: PaymentMethod) => setFormData({ ...formData, paymentMethod: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="결제방법 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="계좌이체">계좌이체</SelectItem>
-                <SelectItem value="카드">카드</SelectItem>
-                <SelectItem value="현금">현금</SelectItem>
-                <SelectItem value="기타">기타</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="status">상태</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(value: ExpenseStatus) => setFormData({ ...formData, status: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="상태 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="대기중">대기중</SelectItem>
-                <SelectItem value="지불완료">지불완료</SelectItem>
-                <SelectItem value="취소됨">취소됨</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              취소
-            </Button>
-            <Button type="submit">{expense ? "수정" : "추가"}</Button>
-          </div>
-        </form>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>금액</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="0" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="currency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>통화</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="KRW">KRW (₩)</SelectItem>
+                        <SelectItem value="USD">USD ($)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="paymentMethod"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>결제방법</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="결제방법 선택" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="계좌이체">계좌이체</SelectItem>
+                      <SelectItem value="카드">카드</SelectItem>
+                      <SelectItem value="현금">현금</SelectItem>
+                      <SelectItem value="기타">기타</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>상태</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="상태 선택" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="대기중">대기중</SelectItem>
+                      <SelectItem value="지불완료">지불완료</SelectItem>
+                      <SelectItem value="취소됨">취소됨</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button type="submit" disabled={isSubmitting}>
+                {expense ? "저장" : "추가"}
+              </Button>
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+                취소
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

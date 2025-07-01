@@ -1,100 +1,103 @@
 import { type NextRequest, NextResponse } from "next/server"
-import type { Expense, ExpenseFilters } from "@/types/expense"
-
-// Mock data with Korean categories
-const expenses: Expense[] = [
-  {
-    id: "1",
-    date: "2025-01-01",
-    item: "사무실 임대료",
-    category: "고정비",
-    amount: 1200000,
-    currency: "KRW",
-    paymentMethod: "계좌이체",
-    status: "지불완료",
-    createdAt: "2025-01-01T00:00:00Z",
-    updatedAt: "2025-01-01T00:00:00Z",
-  },
-  {
-    id: "2",
-    date: "2025-01-03",
-    item: "AWS 서버",
-    category: "고정비",
-    amount: 300000,
-    currency: "KRW",
-    paymentMethod: "카드",
-    status: "지불완료",
-    createdAt: "2025-01-03T00:00:00Z",
-    updatedAt: "2025-01-03T00:00:00Z",
-  },
-  {
-    id: "3",
-    date: "2025-01-05",
-    item: "프리랜서 A",
-    category: "프로젝트",
-    amount: 500000,
-    currency: "KRW",
-    paymentMethod: "계좌이체",
-    status: "대기중",
-    createdAt: "2025-01-05T00:00:00Z",
-    updatedAt: "2025-01-05T00:00:00Z",
-  },
-  {
-    id: "4",
-    date: "2025-01-10",
-    item: "마케팅 광고",
-    category: "변동비",
-    amount: 800000,
-    currency: "KRW",
-    paymentMethod: "카드",
-    status: "지불완료",
-    createdAt: "2025-01-10T00:00:00Z",
-    updatedAt: "2025-01-10T00:00:00Z",
-  },
-]
+import { supabase } from "@/lib/supabase"
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const filters: ExpenseFilters = {
-    dateFrom: searchParams.get("dateFrom") || undefined,
-    dateTo: searchParams.get("dateTo") || undefined,
-    category: (searchParams.get("category") as any) || undefined,
-    status: (searchParams.get("status") as any) || undefined,
-    search: searchParams.get("search") || undefined,
-  }
+  try {
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get("category")
+    const status = searchParams.get("status")
+    const search = searchParams.get("search")
+    const dateFrom = searchParams.get("dateFrom")
+    const dateTo = searchParams.get("dateTo")
 
-  let filteredExpenses = [...expenses]
+    let query = supabase.from("expenses").select("*").order("date", { ascending: false })
 
-  // Apply filters
-  if (filters.dateFrom) {
-    filteredExpenses = filteredExpenses.filter((expense) => expense.date >= filters.dateFrom!)
-  }
-  if (filters.dateTo) {
-    filteredExpenses = filteredExpenses.filter((expense) => expense.date <= filters.dateTo!)
-  }
-  if (filters.category) {
-    filteredExpenses = filteredExpenses.filter((expense) => expense.category === filters.category)
-  }
-  if (filters.status) {
-    filteredExpenses = filteredExpenses.filter((expense) => expense.status === filters.status)
-  }
-  if (filters.search) {
-    const searchLower = filters.search.toLowerCase()
-    filteredExpenses = filteredExpenses.filter((expense) => expense.item.toLowerCase().includes(searchLower))
-  }
+    if (category) {
+      query = query.eq("category", category)
+    }
 
-  return NextResponse.json(filteredExpenses)
+    if (status) {
+      query = query.eq("status", status)
+    }
+
+    if (search) {
+      query = query.ilike("item", `%${search}%`)
+    }
+
+    
+
+    if (dateFrom) {
+      query = query.gte("date", dateFrom)
+    }
+
+    if (dateTo) {
+      query = query.lte("date", dateTo)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error("Error fetching expenses:", error)
+      return NextResponse.json({ error: "Failed to fetch expenses" }, { status: 500 })
+    }
+
+    // Transform data to match frontend expectations
+    const transformedData = data.map((expense) => ({
+      id: expense.id,
+      date: expense.date,
+      item: expense.item,
+      category: expense.category,
+      amount: expense.amount,
+      paymentMethod: expense.payment_method,
+      status: expense.status,
+      currency: expense.currency,
+    }))
+
+    return NextResponse.json(transformedData)
+  } catch (error) {
+    console.error("Error in expenses GET:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
-  const newExpense: Expense = {
-    id: Date.now().toString(),
-    ...body,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
+  try {
+    const body = await request.json()
 
-  expenses.push(newExpense)
-  return NextResponse.json(newExpense, { status: 201 })
+    const { data, error } = await supabase
+      .from("expenses")
+      .insert({
+        date: body.date,
+        item: body.item,
+        category: body.category,
+        amount: body.amount,
+        payment_method: body.paymentMethod,
+        status: body.status,
+        currency: body.currency || "KRW",
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error creating expense:", error)
+      return NextResponse.json({ error: "Failed to create expense" }, { status: 500 })
+    }
+
+    // Transform data to match frontend expectations
+    const transformedData = {
+      id: data.id,
+      date: data.date,
+      item: data.item,
+      category: data.category,
+      amount: data.amount,
+      paymentMethod: data.payment_method,
+      status: data.status,
+      currency: data.currency,
+    }
+
+    return NextResponse.json(transformedData, { status: 201 })
+  } catch (error) {
+    console.error("Error in expenses POST:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

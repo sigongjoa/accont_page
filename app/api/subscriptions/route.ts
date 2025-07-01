@@ -1,126 +1,114 @@
-import { NextResponse } from 'next/server';
-import logger from '@/lib/logger';
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
+import { type NextRequest, NextResponse } from "next/server"
+import { supabase } from "@/lib/supabase"
 
-const filePath = path.join(process.cwd(), 'data', 'subscriptions.json');
-
-// Ensure the directory exists
-const ensureDirectoryExists = async (dirPath: string) => {
+export async function GET(request: NextRequest) {
   try {
-    await fs.mkdir(dirPath, { recursive: true });
-  } catch (error) {
-    logger.error('Error ensuring directory exists', { error });
-  }
-};
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get("category")
+    const isActive = searchParams.get("isActive")
+    const search = searchParams.get("search")
 
-const initializeFile = async () => {
-  await ensureDirectoryExists(path.dirname(filePath));
-  try {
-    await fs.access(filePath);
-  } catch (error) {
-    logger.debug('subscriptions.json does not exist, creating with initial data.');
-    const initialSubscriptions = [
-      { id: '1', name: 'Netflix', amount: 15000, currency: 'KRW', recurrence: 'monthly', nextPaymentDate: '2024-07-01', category: 'Entertainment', status: 'Active' },
-      { id: '2', name: 'Spotify', amount: 10000, currency: 'KRW', recurrence: 'monthly', nextPaymentDate: '2024-07-05', category: 'Music', status: 'Active' },
-    ];
-    await fs.writeFile(filePath, JSON.stringify(initialSubscriptions, null, 2));
-  }
-};
+    let query = supabase.from("subscriptions").select("*").order("created_at", { ascending: false })
 
-const readSubscriptions = async () => {
-  await initializeFile(); // Ensure file exists before reading
-  const data = await fs.readFile(filePath, 'utf8');
-  return JSON.parse(data);
-};
-
-const writeSubscriptions = async (subscriptions: any[]) => {
-  await ensureDirectoryExists(path.dirname(filePath));
-  await fs.writeFile(filePath, JSON.stringify(subscriptions, null, 2));
-};
-
-export async function GET() {
-  logger.debug('GET /api/subscriptions: Enter');
-  try {
-    const subscriptions = await readSubscriptions();
-    logger.debug('GET /api/subscriptions: Returning all subscriptions', { count: subscriptions.length });
-    return NextResponse.json(subscriptions);
-  } catch (error) {
-    logger.error('GET /api/subscriptions: Error fetching subscriptions', { error: error.message });
-    return new NextResponse('Internal Server Error', { status: 500 });
-  } finally {
-    logger.debug('GET /api/subscriptions: Exit');
-  }
-}
-
-export async function POST(request: Request) {
-  logger.debug('POST /api/subscriptions: Enter');
-  try {
-    const data = await request.json();
-    logger.debug('POST /api/subscriptions: Received data', { data });
-    const subscriptions = await readSubscriptions();
-    const newSubscription = { id: (subscriptions.length > 0 ? Math.max(...subscriptions.map((s: any) => parseInt(s.id))) + 1 : 1).toString(), ...data };
-    subscriptions.push(newSubscription);
-    await writeSubscriptions(subscriptions);
-    logger.debug('POST /api/subscriptions: New subscription added', { newSubscription });
-    return NextResponse.json(newSubscription, { status: 201 });
-  } catch (error) {
-    logger.error('POST /api/subscriptions: Error adding subscription', { error: error.message });
-    return new NextResponse('Internal Server Error', { status: 500 });
-  } finally {
-    logger.debug('POST /api/subscriptions: Exit');
-  }
-}
-
-export async function PUT(request: Request) {
-  logger.debug('PUT /api/subscriptions: Enter');
-  try {
-    const { id, ...updatedData } = await request.json();
-    logger.debug('PUT /api/subscriptions: Received data', { id, updatedData });
-    let subscriptions = await readSubscriptions();
-    let updated = false;
-    subscriptions = subscriptions.map((sub: any) => {
-      if (sub.id === id) {
-        updated = true;
-        return { ...sub, ...updatedData };
-      }
-      return sub;
-    });
-    if (!updated) {
-      logger.warn('PUT /api/subscriptions: Subscription not found for update', { id });
-      return new NextResponse('Subscription not found', { status: 404 });
+    if (category) {
+      query = query.eq("category", category)
     }
-    await writeSubscriptions(subscriptions);
-    const updatedSubscription = subscriptions.find((sub: any) => sub.id === id);
-    logger.debug('PUT /api/subscriptions: Subscription updated', { updatedSubscription });
-    return NextResponse.json(updatedSubscription);
+
+    if (isActive !== null) {
+      query = query.eq("is_active", isActive === "true")
+    }
+
+    if (search) {
+      query = query.ilike("service_name", `%${search}%`)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error("Error fetching subscriptions:", error)
+      return NextResponse.json({ error: "Failed to fetch subscriptions" }, { status: 500 })
+    }
+
+    // Transform data to match frontend expectations
+    const transformedData = data.map((subscription) => ({
+      id: subscription.id,
+      serviceName: subscription.service_name,
+      amount: subscription.amount,
+      currency: subscription.currency,
+      billingInterval: subscription.billing_interval,
+      startDate: subscription.start_date,
+      category: subscription.category,
+      isActive: subscription.is_active,
+    }))
+
+    return NextResponse.json(transformedData)
   } catch (error) {
-    logger.error('PUT /api/subscriptions: Error updating subscription', { error: error.message });
-    return new NextResponse('Internal Server Error', { status: 500 });
-  } finally {
-    logger.debug('PUT /api/subscriptions: Exit');
+    console.error("Error in subscriptions GET:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
-export async function DELETE(request: Request) {
-  logger.debug('DELETE /api/subscriptions: Enter');
+export async function POST(request: NextRequest) {
   try {
-    const { id } = await request.json(); // Assuming ID is sent in the request body for DELETE
-    logger.debug('DELETE /api/subscriptions: Received ID', { id });
-    let subscriptions = await readSubscriptions();
-    const initialLength = subscriptions.length;
-    subscriptions = subscriptions.filter((sub: any) => sub.id !== id);
-    if (subscriptions.length === initialLength) {
-      logger.warn('DELETE /api/subscriptions: Subscription not found for deletion', { id });
-      return new NextResponse('Subscription not found', { status: 404 });
+    const body = await request.json()
+
+    const { data, error } = await supabase
+      .from("subscriptions")
+      .insert({
+        service_name: body.serviceName,
+        amount: body.amount,
+        currency: body.currency || "KRW",
+        billing_interval: body.billingInterval,
+        start_date: body.startDate,
+        category: body.category,
+        is_active: body.isActive !== undefined ? body.isActive : true,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error creating subscription:", error)
+      return NextResponse.json({ error: "Failed to create subscription" }, { status: 500 })
     }
-    await writeSubscriptions(subscriptions);
-    logger.debug('DELETE /api/subscriptions: Subscription deleted', { id });
-    return new NextResponse(null, { status: 204 });
+
+    // Transform data to match frontend expectations
+    const transformedData = {
+      id: data.id,
+      serviceName: data.service_name,
+      amount: data.amount,
+      currency: data.currency,
+      billingInterval: data.billing_interval,
+      startDate: data.start_date,
+      category: data.category,
+      isActive: data.is_active,
+    }
+
+    return NextResponse.json(transformedData, { status: 201 })
   } catch (error) {
-    logger.error('DELETE /api/subscriptions: Error deleting subscription', { error: error.message });
-    return new NextResponse('Internal Server Error', { status: 500 });
-  } finally {
-    logger.debug('DELETE /api/subscriptions: Exit');
+    console.error("Error in subscriptions POST:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
-} 
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id } = body
+
+    if (!id) {
+      return NextResponse.json({ error: "Subscription ID is required" }, { status: 400 })
+    }
+
+    const { error } = await supabase.from("subscriptions").delete().eq("id", id)
+
+    if (error) {
+      console.error("Error deleting subscription:", error)
+      return NextResponse.json({ error: "Failed to delete subscription" }, { status: 500 })
+    }
+
+    return NextResponse.json({ message: "Subscription deleted successfully" })
+  } catch (error) {
+    console.error("Error in subscription DELETE:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

@@ -1,68 +1,147 @@
-import { NextResponse } from 'next/server'
-import type { Site } from "@/types/site"
+import { type NextRequest, NextResponse } from "next/server"
+import { supabase } from "@/lib/supabase"
 
-let sites: Site[] = [
-  {
-    id: '1',
-    name: 'Netflix',
-    description: '영화, TV 프로그램, 다큐멘터리를 제공하는 스트리밍 서비스',
-    isSubscribed: true,
-    usage: '월 100시간 시청',
-    category: '스트리밍',
-  },
-  {
-    id: '2',
-    name: 'YouTube Premium',
-    description: '광고 없는 동영상 시청, 오프라인 저장, 백그라운드 재생',
-    isSubscribed: true,
-    usage: '월 50시간 시청',
-    category: '스트리밍',
-  },
-  {
-    id: '3',
-    name: 'Spotify',
-    description: '수백만 곡의 음악과 팟캐스트를 제공하는 오디오 스트리밍 서비스',
-    isSubscribed: false,
-    usage: '월 30시간 청취',
-    category: '오디오',
-  },
-  {
-    id: '4',
-    name: 'Adobe Creative Cloud',
-    description: '포토샵, 일러스트레이터 등 크리에이티브 앱 모음',
-    isSubscribed: true,
-    usage: '월 80시간 사용',
-    category: '디자인',
-  },
-  {
-    id: '5',
-    name: 'Notion',
-    description: '메모, 프로젝트 관리, 데이터베이스 기능을 통합한 작업 공간',
-    isSubscribed: false,
-    usage: '월 40시간 사용',
-    category: '생산성',
-  },
-]
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get("category")
+    const isSubscribed = searchParams.get("isSubscribed")
+    const search = searchParams.get("search")
 
-export async function GET() {
-  return NextResponse.json(sites)
+    let query = supabase.from("sites").select("*").order("created_at", { ascending: false })
+
+    if (category) {
+      query = query.eq("category", category)
+    }
+
+    if (isSubscribed !== null) {
+      query = query.eq("is_subscribed", isSubscribed === "true")
+    }
+
+    if (search) {
+      query = query.ilike("name", `%${search}%`)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error("Error fetching sites:", error)
+      return NextResponse.json({ error: "Failed to fetch sites" }, { status: 500 })
+    }
+
+    // Transform data to match frontend expectations
+    const transformedData = data.map((site) => ({
+      id: site.id,
+      name: site.name,
+      description: site.description,
+      category: site.category,
+      isSubscribed: site.is_subscribed,
+      usage: site.usage,
+    }))
+
+    return NextResponse.json(transformedData)
+  } catch (error) {
+    console.error("Error in sites GET:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
-export async function POST(request: Request) {
-  const newSite: Site = await request.json()
-  newSite.id = String(Date.now()) // Simple ID generation
-  sites.push(newSite)
-  return NextResponse.json(newSite, { status: 201 })
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+
+    const { data, error } = await supabase
+      .from("sites")
+      .insert({
+        name: body.name,
+        description: body.description,
+        category: body.category,
+        is_subscribed: body.isSubscribed || false,
+        usage: body.usage,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error creating site:", error)
+      return NextResponse.json({ error: "Failed to create site" }, { status: 500 })
+    }
+
+    // Transform data to match frontend expectations
+    const transformedData = {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      category: data.category,
+      isSubscribed: data.is_subscribed,
+      usage: data.usage,
+    }
+
+    return NextResponse.json(transformedData, { status: 201 })
+  } catch (error) {
+    console.error("Error in sites POST:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
-export async function PUT(request: Request) {
-  const updatedSite: Site = await request.json()
-  sites = sites.map((site) => (site.id === updatedSite.id ? updatedSite : site))
-  return NextResponse.json(updatedSite)
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+
+    const { data, error } = await supabase
+      .from("sites")
+      .update({
+        name: body.name,
+        description: body.description,
+        category: body.category,
+        is_subscribed: body.isSubscribed,
+        usage: body.usage,
+      })
+      .eq("id", body.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error("Error updating site:", error)
+      return NextResponse.json({ error: "Failed to update site" }, { status: 500 })
+    }
+
+    // Transform data to match frontend expectations
+    const transformedData = {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      category: data.category,
+      isSubscribed: data.is_subscribed,
+      usage: data.usage,
+    }
+
+    return NextResponse.json(transformedData)
+  } catch (error) {
+    console.error("Error in site PUT:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
-export async function DELETE(request: Request) {
-  const { id } = await request.json()
-  sites = sites.filter((site) => site.id !== id)
-  return NextResponse.json({ message: "Site deleted" })
-} 
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id } = body
+
+    if (!id) {
+      return NextResponse.json({ error: "Site ID is required" }, { status: 400 })
+    }
+
+    const { error } = await supabase.from("sites").delete().eq("id", id)
+
+    if (error) {
+      console.error("Error deleting site:", error)
+      return NextResponse.json({ error: "Failed to delete site" }, { status: 500 })
+    }
+
+    return NextResponse.json({ message: "Site deleted successfully" })
+  } catch (error) {
+    console.error("Error in site DELETE:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

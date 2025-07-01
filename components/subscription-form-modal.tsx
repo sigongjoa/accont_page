@@ -168,4 +168,4 @@ export function SubscriptionFormModal({ isOpen, onClose, onSubmit, subscription 
       </DialogContent>
     </Dialog>
   );
-} 
+}

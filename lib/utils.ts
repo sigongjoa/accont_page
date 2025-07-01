@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Expense, ExpenseSummary } from "@/types/expense"
+import logger from "./logger"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -23,23 +24,41 @@ export function formatDate(dateString: string): string {
 }
 
 export function calculateExpenseSummary(expenses: Expense[]): ExpenseSummary {
-  const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0)
+  logger.debug("calculateExpenseSummary: Enter", { expensesCount: expenses.length })
+  const totalAmount = expenses.reduce((sum, expense) => {
+    logger.debug("calculateExpenseSummary: Reducing expense", { expenseId: expense.id, expenseAmount: expense.amount })
+    const amount = typeof expense.amount === 'number' ? expense.amount : 0;
+    return sum + amount
+  }, 0)
+  logger.debug("calculateExpenseSummary: totalAmount calculated", { totalAmount })
 
   const categoryTotals = expenses.reduce(
     (acc, expense) => {
-      acc[expense.category] = (acc[expense.category] || 0) + expense.amount
+      logger.debug("calculateExpenseSummary: Processing category total for expense", { category: expense.category, amount: expense.amount })
+      const amount = typeof expense.amount === 'number' ? expense.amount : 0; // Safely handle expense.amount
+      acc[expense.category] = (acc[expense.category] || 0) + amount
       return acc
     },
     {} as Record<string, number>,
   )
+  logger.debug("calculateExpenseSummary: categoryTotals calculated", { categoryTotals })
 
-  return {
+  const fixedPercentage = totalAmount > 0 ? (((categoryTotals.고정비 ?? 0) / totalAmount) * 100) : 0;
+  const variablePercentage = totalAmount > 0 ? (((categoryTotals.변동비 ?? 0) / totalAmount) * 100) : 0;
+  const projectPercentage = totalAmount > 0 ? (((categoryTotals.프로젝트 ?? 0) / totalAmount) * 100) : 0;
+  const otherPercentage = totalAmount > 0 ? (((categoryTotals.기타 ?? 0) / totalAmount) * 100) : 0;
+
+  logger.debug("calculateExpenseSummary: Percentages calculated", { fixedPercentage, variablePercentage, projectPercentage, otherPercentage })
+
+  const summary = {
     totalAmount,
-    fixedPercentage: totalAmount > 0 ? ((categoryTotals.고정비 || 0) / totalAmount) * 100 : 0,
-    variablePercentage: totalAmount > 0 ? ((categoryTotals.변동비 || 0) / totalAmount) * 100 : 0,
-    projectPercentage: totalAmount > 0 ? ((categoryTotals.프로젝트 || 0) / totalAmount) * 100 : 0,
-    otherPercentage: totalAmount > 0 ? ((categoryTotals.기타 || 0) / totalAmount) * 100 : 0,
+    fixedPercentage,
+    variablePercentage,
+    projectPercentage,
+    otherPercentage,
   }
+  logger.debug("calculateExpenseSummary: Exit", { summary })
+  return summary
 }
 
 export function getMonthlyTrends(expenses: Expense[]) {

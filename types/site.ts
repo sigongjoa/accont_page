@@ -4,4 +4,4 @@ export interface Site {
   description: string;
   isSubscribed: boolean;
   usage: string;
-} 
+}

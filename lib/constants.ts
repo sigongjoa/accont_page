@@ -8,4 +8,10 @@ export const categories = [
   { value: "education", label: "교육" },
   { value: "shopping", label: "쇼핑" },
   { value: "other", label: "기타" },
-] 
+]
+
+export const expenseStatuses = [
+  { value: "대기중", label: "대기중" },
+  { value: "지불완료", label: "지불완료" },
+  { value: "취소됨", label: "취소됨" },
+]

@@ -68,4 +68,4 @@ export function SiteTable({ sites, onEdit, onDelete }: SiteTableProps) {
       </CardContent>
     </Card>
   )
-} 
+}

@@ -13,7 +13,6 @@ import { useState, useEffect } from "react"
 
 interface ExpenseTableProps {
   expenses: Expense[]
-  onAddExpense: () => void
   onEditExpense: (expense: Expense) => void
   onDeleteExpense: (id: string) => void
   filters: ExpenseFilters
@@ -22,7 +21,6 @@ interface ExpenseTableProps {
 
 export function ExpenseTable({
   expenses,
-  onAddExpense,
   onEditExpense,
   onDeleteExpense,
   filters,
@@ -77,10 +75,6 @@ export function ExpenseTable({
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>지출 내역</CardTitle>
-          <Button onClick={onAddExpense}>
-            <Plus className="h-4 w-4 mr-2" />
-            지출 추가
-          </Button>
         </div>
 
         {!online && (

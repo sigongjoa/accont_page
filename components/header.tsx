@@ -82,7 +82,14 @@ export function Header({
           )}
 
           {onAddExpense && !isMobile && (
-            <Button onClick={onAddExpense} size="sm" className="h-8 gap-1">
+            <Button
+              onClick={() => {
+                console.log("Header: '지출 추가' 버튼 클릭됨");
+                if (onAddExpense) onAddExpense();
+              }}
+              size="sm"
+              className="h-8 gap-1"
+            >
               <PlusCircle className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">지출 추가</span>
             </Button>
