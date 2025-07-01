@@ -6,15 +6,30 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { PlusCircle } from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sidebar } from "./sidebar"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface HeaderProps {
   title?: string
   selectedPeriod?: string
   onPeriodChange?: (period: string) => void
+  onAddExpense?: () => void
+  onAddSite?: () => void
+  onAddSubscription?: () => void
 }
 
-export function Header({ title, selectedPeriod, onPeriodChange }: HeaderProps) {
+export function Header({
+  title,
+  selectedPeriod,
+  onPeriodChange,
+  onAddExpense,
+  onAddSite,
+  onAddSubscription,
+}: HeaderProps) {
   const [isOnline, setIsOnline] = useState(true)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true)
@@ -66,6 +81,27 @@ export function Header({ title, selectedPeriod, onPeriodChange }: HeaderProps) {
             </Select>
           )}
 
+          {onAddExpense && !isMobile && (
+            <Button onClick={onAddExpense} size="sm" className="h-8 gap-1">
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">지출 추가</span>
+            </Button>
+          )}
+
+          {onAddSite && !isMobile && (
+            <Button onClick={onAddSite} size="sm" className="h-8 gap-1">
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">사이트 추가</span>
+            </Button>
+          )}
+
+          {onAddSubscription && !isMobile && (
+            <Button onClick={onAddSubscription} size="sm" className="h-8 gap-1">
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">구독 추가</span>
+            </Button>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -78,6 +114,19 @@ export function Header({ title, selectedPeriod, onPeriodChange }: HeaderProps) {
               <DropdownMenuItem>로그아웃</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {isMobile && (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Building2 className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0">
+                <Sidebar />
+              </SheetContent>
+            </Sheet>
+          )}
         </div>
       </div>
     </header>

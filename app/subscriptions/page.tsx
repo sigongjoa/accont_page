@@ -234,7 +234,7 @@ export default function SubscriptionsPage() {
   logger.debug('Rendering: Subscriptions content');
   return (
     <div className="flex flex-1 flex-col">
-      <Header title="구독" onAddSite={handleAddSubscription} />
+      <Header title="구독" onAddSubscription={handleAddSubscription} />
       <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
         <SubscriptionFiltersComponent
           filters={filters}

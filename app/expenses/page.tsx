@@ -218,8 +218,8 @@ export default function ExpensesPage() {
         />
         <ExpenseTable
           expenses={filteredExpenses}
-          onEdit={handleEditExpense}
-          onDelete={handleDeleteExpense}
+          onEditExpense={handleEditExpense}
+          onDeleteExpense={handleDeleteExpense}
           loading={loading}
           filters={filters}
           onFiltersChange={setFilters}
