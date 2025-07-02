@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Paper Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: 50px auto;
+            text-align: center;
+        }
+        h1 {
+            color: #0056b3;
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            width: calc(100% - 22px);
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin-top: 20px;
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Paper Data</h1>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" id="paperFile" name="paperFile" accept=".json" required>
+            <button type="submit">Upload Data</button>
+        </form>
+        <div id="message" class="message"></div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('paperFile');
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = '';
+            messageDiv.classList.remove('error');
+            messageDiv.classList.remove('message');
+
+            if (fileInput.files.length === 0) {
+                messageDiv.textContent = 'Please select a file to upload.';
+                messageDiv.classList.add('error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('paperFile', fileInput.files[0]);
+
+            try {
+                // Replace with your actual API endpoint
+                const response = await fetch('/api/upload-papers', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    messageDiv.textContent = 'File uploaded successfully: ' + (result.message || 'No specific message.');
+                    messageDiv.classList.add('message');
+                } else {
+                    const errorText = await response.text();
+                    messageDiv.textContent = 'Upload failed: ' + (errorText || response.statusText);
+                    messageDiv.classList.add('error');
+                }
+            } catch (error) {
+                messageDiv.textContent = 'An error occurred during upload: ' + error.message;
+                messageDiv.classList.add('error');
+            }
+        });
+    </script>
+</body>
+</html>
