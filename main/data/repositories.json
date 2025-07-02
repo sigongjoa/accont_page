@@ -1,0 +1,53 @@
+
+[
+  {
+    "id": "nextjs",
+    "name": "next.js",
+    "owner": "vercel",
+    "language": "JavaScript",
+    "stars": 120000,
+    "description": "The React Framework for the Web.",
+    "url": "https://github.com/vercel/next.js",
+    "last_activity": "2024-07-01T10:00:00Z"
+  },
+  {
+    "id": "react",
+    "name": "react",
+    "owner": "facebook",
+    "language": "JavaScript",
+    "stars": 200000,
+    "description": "A declarative, efficient, and flexible JavaScript library for building user interfaces.",
+    "url": "https://github.com/facebook/react",
+    "last_activity": "2024-06-30T15:30:00Z"
+  },
+  {
+    "id": "tensorflow",
+    "name": "tensorflow",
+    "owner": "tensorflow",
+    "language": "Python",
+    "stars": 180000,
+    "description": "An open-source machine learning framework.",
+    "url": "https://github.com/tensorflow/tensorflow",
+    "last_activity": "2024-07-01T08:00:00Z"
+  },
+  {
+    "id": "kubernetes",
+    "name": "kubernetes",
+    "owner": "kubernetes",
+    "language": "Go",
+    "stars": 110000,
+    "description": "Production-Grade Container Orchestration.",
+    "url": "https://github.com/kubernetes/kubernetes",
+    "last_activity": "2024-06-29T12:00:00Z"
+  },
+  {
+    "id": "awesome-go",
+    "name": "awesome-go",
+    "owner": "avelino",
+    "language": "Go",
+    "stars": 90000,
+    "description": "A curated list of awesome Go frameworks, libraries and software.",
+    "url": "https://github.com/avelino/awesome-go",
+    "last_activity": "2024-06-28T11:00:00Z"
+  }
+]

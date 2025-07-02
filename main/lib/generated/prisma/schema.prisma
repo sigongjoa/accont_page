@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL")
+}
+
+model Expense {
+  id              String   @id @default(cuid())
+  date            String
+  item            String
+  category        String
+  amount          Int
+  currency        String
+  paymentMethod   String
+  status          String
+  transactionType String   @default("expense") // Add this line
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Site {
+  id           String   @id @default(cuid())
+  name         String
+  description  String
+  url          String // Add this line
+  isSubscribed Boolean
+  usage        String
+  category     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Subscription {
+  id              String   @id @default(cuid())
+  serviceName     String   @map("service_name")
+  amount          Int
+  currency        String
+  billingInterval String   @map("billing_interval")
+  startDate       String   @map("start_date")
+  nextBillingDate String   @map("next_billing_date")
+  category        String
+  isActive        Boolean  @map("is_active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("subscriptions")
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  category    String
+  description String
+  pricing     String
+  url         String
+  connections String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
