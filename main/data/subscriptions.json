@@ -1,0 +1,11 @@
+[
+  {
+    "id": "1",
+    "serviceName": "222",
+    "amount": 22,
+    "currency": "KRW",
+    "billingInterval": "monthly",
+    "startDate": "2025-07-01",
+    "category": "transportation"
+  }
+]

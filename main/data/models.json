@@ -1,0 +1,47 @@
+
+[
+  {
+    "id": "gpt2",
+    "name": "gpt2",
+    "author": "openai",
+    "tags": ["text-generation", "english", "small"],
+    "parameters": "1.5B",
+    "inference_speed": "Fast",
+    "license": "MIT",
+    "stars": 12000,
+    "description": "A small, general-purpose language model."
+  },
+  {
+    "id": "bert-base-uncased",
+    "name": "bert-base-uncased",
+    "author": "google",
+    "tags": ["fill-mask", "english", "medium"],
+    "parameters": "110M",
+    "inference_speed": "Medium",
+    "license": "Apache-2.0",
+    "stars": 15000,
+    "description": "Pre-trained BERT model with uncased English vocabulary."
+  },
+  {
+    "id": "vit-base-patch16-224",
+    "name": "vit-base-patch16-224",
+    "author": "google",
+    "tags": ["image-classification", "vision", "medium"],
+    "parameters": "86M",
+    "inference_speed": "Medium",
+    "license": "Apache-2.0",
+    "stars": 8000,
+    "description": "Vision Transformer pre-trained on ImageNet-21k."
+  },
+  {
+    "id": "kobert",
+    "name": "kobert",
+    "author": "skt",
+    "tags": ["text-generation", "korean", "medium"],
+    "parameters": "340M",
+    "inference_speed": "Medium",
+    "license": "Apache-2.0",
+    "stars": 5000,
+    "description": "Korean BERT model."
+  }
+]
